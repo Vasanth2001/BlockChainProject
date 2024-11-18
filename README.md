@@ -1,93 +1,160 @@
-# Blockchain Implementation in Python
+# Blockchain with P2P Network
 
-This project is a simple blockchain implementation in Python, featuring essential blockchain concepts like proof-of-work mining, transaction handling, block validation, and chain integrity checks.
+This project is a simplified blockchain implementation featuring Proof of Work (PoW) consensus and basic peer-to-peer (P2P) networking. The blockchain can mine new blocks, add them to the chain, validate integrity, and resolve conflicts across nodes. 
+
+The project uses Flask for the server-side APIs, allowing multiple nodes to communicate and maintain a synchronized blockchain. 
+
+---
 
 ## Features
 
-- **Proof-of-Work (PoW):** Mining blocks with configurable difficulty.
-- **CPU Utilization Tracking:** Tracks CPU usage during block mining and chain validation.
-- **Dynamic Block Confirmation:** Blocks are confirmed and added to the chain based on a customizable confirmation requirement.
-- **Transaction Simulation:** Supports custom transactions between users.
-- **Chain Integrity Check:** Verifies the entire blockchain for data consistency and proof-of-work validity.
+1. **Proof of Work**: Blocks are mined by solving a computationally difficult problem based on a configurable difficulty level.
+2. **Genesis Block**: The chain is initialized with a Genesis block.
+3. **Block Validation**: Ensures data integrity and validates that the chain satisfies the PoW.
+4. **Distributed Network**:
+   - Nodes can broadcast new blocks to peers.
+   - Nodes can resolve conflicts to agree on the longest valid chain.
+5. **RESTful API**: API endpoints to mine, add blocks, fetch the blockchain, and resolve conflicts.
+6. **CLI Interface**: A user-friendly CLI to interact with the blockchain, submit transactions, view the chain, and verify its integrity.
 
-## Prerequisites
+---
 
-- Python 3.x
-- `psutil` library for CPU usage tracking.
+## Technologies Used
 
-Install `psutil`:
-```bash
-pip install psutil
+- **Python**: Core logic and implementation.
+- **Flask**: RESTful API for blockchain interactions.
+- **Requests**: HTTP communication between nodes.
+- **Psutil**: Performance monitoring during mining.
+- **JSON**: Serialization and deserialization of blockchain data.
+
+---
+
+## Project Structure
+
+```plaintext
+├── blockchain.py   # Core blockchain logic
+├── app.py          # Flask app exposing blockchain APIs
+├── main.py         # CLI interface for interacting with the blockchain
+├── nodes.json      # File to store connected nodes
 ```
 
-## Classes and Methods
+---
 
-### `Block`
+## Installation and Setup
 
-This class represents a block in the blockchain.
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/yourusername/blockchain-p2p.git
+   cd blockchain-p2p
+   ```
 
-- **Attributes**:
-  - `index`: Block number.
-  - `timestamp`: Timestamp when the block is created.
-  - `transactions`: List of transactions in the block.
-  - `previous_hash`: Hash of the previous block for chain linking.
-  - `nonce`: A number used to find a valid block hash.
-  - `hash`: Unique identifier calculated using SHA-256.
+2. **Install Dependencies**:
+   Ensure you have Python 3.6+ installed. Install required libraries:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- **Methods**:
-  - `calculate_hash()`: Computes the SHA-256 hash of the block.
-  - `mine_block(difficulty)`: Mines the block using proof-of-work by finding a hash with a specific number of leading zeros.
+3. **Run a Node**:
+   Start a node using `app.py`. Optionally, specify the port:
+   ```bash
+   python app.py 5000
+   ```
+   If no port is provided, the default is `5000`.
 
-### `BlockChain`
+4. **Start the CLI Interface**:
+   Use the CLI to interact with the blockchain:
+   ```bash
+   python main.py
+   ```
 
-This class manages the blockchain, a list of linked blocks.
+---
 
-- **Attributes**:
-  - `chain`: List of confirmed blocks in the blockchain.
-  - `difficulty`: Number of leading zeros required in the hash for PoW.
-  - `confirmation_requirement`: Number of mined blocks needed before appending to the chain.
-  - `pending_blocks`: List of blocks awaiting confirmation.
+## API Endpoints
 
-- **Methods**:
-  - `get_latest_block()`: Returns the last confirmed block in the chain.
-  - `add_block(new_block)`: Mines and adds a new block to the chain.
-  - `is_chain_valid()`: Validates the blockchain by checking hash consistency and proof-of-work requirements.
-  - `display_chain()`: Displays all confirmed blocks in the chain.
+### **1. Fetch Blockchain**
+- **URL**: `/chain`
+- **Method**: GET
+- **Response**: JSON representation of the blockchain.
 
-### Utility Functions
+### **2. Mine a New Block**
+- **URL**: `/mine`
+- **Method**: POST
+- **Request Body**:
+  ```json
+  {
+    "transactions": ["Alice pays Bob 10 BTC"]
+  }
+  ```
+- **Response**: Details of the mined block.
 
-- **`get_custom_transaction()`**: Collects transaction details from the user.
-- **`mine_new_block(blockchain)`**: Mines a new block and adds it to the blockchain.
-- **`display_blockchain_state(blockchain)`**: Displays the current blockchain.
+### **3. Add a Block**
+- **URL**: `/add_block`
+- **Method**: POST
+- **Request Body**: Block data.
+- **Response**: Status of block addition.
 
-### `main()` Function
+### **4. Resolve Conflicts**
+- **URL**: `/nodes/resolve`
+- **Method**: GET
+- **Response**: Updated blockchain if conflicts are resolved.
 
-The main menu offers four options:
-1. **Add and Mine a New Block**: Adds transactions and mines a new block.
-2. **View Blockchain**: Displays the blockchain.
-3. **Verify Blockchain Integrity**: Validates the entire blockchain.
-4. **Exit**: Exits the program.
+---
 
 ## Usage
 
-Run the program:
+### From the CLI
 
-```bash
-python blockchain.py
-```
+1. **Add Transactions and Mine a Block**:
+   Enter details of the sender, receiver, and amount. The block is mined and added to the chain.
 
-In the main menu, you can choose:
-1. Add and mine a new block with custom transactions.
-2. View the entire blockchain and each block's details.
-3. Verify the blockchain's integrity.
-4. Exit the program.
+2. **View Blockchain**:
+   View the full blockchain with all blocks and their details.
 
-## Example Run
+3. **Verify Blockchain**:
+   Ensure the blockchain is valid and intact.
 
-1. Select **Option 1** to enter a transaction and mine a block.
-2. Choose **Option 2** to view the blockchain.
-3. Use **Option 3** to check the validity of the blockchain.
+4. **Exit**:
+   Quit the CLI.
+
+---
+
+## Node Synchronization
+
+- Add peers by modifying the `nodes.json` file:
+  ```json
+  {
+    "nodes": ["http://127.0.0.1:5001", "http://127.0.0.1:5002"]
+  }
+  ```
+- Nodes communicate with peers to broadcast new blocks and resolve chain conflicts.
+
+---
+
+## Example Workflow
+
+1. Start two nodes on different ports:
+   ```bash
+   python app.py 5000
+   python app.py 5001
+   ```
+
+2. Add transactions and mine blocks via the CLI:
+   ```bash
+   python main.py
+   ```
+
+3. Use `/nodes/resolve` to synchronize chains across nodes.
+
+---
+
+## Future Enhancements
+
+- Add support for digital signatures and cryptographic verification.
+- Implement a more advanced consensus mechanism.
+- Extend the P2P network to discover peers dynamically.
+
+---
 
 ## License
 
-This code is provided under the MIT License.
+This project is licensed under the MIT License. Feel free to use and modify it for your purposes.
