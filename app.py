@@ -15,10 +15,7 @@ def get_chain():
     chain_data = [vars(block) for block in blockchain.chain]
     return jsonify({"length": len(chain_data), "chain": chain_data}), 200
 
-import psutil
-import time
-import requests
-from flask import jsonify, request
+
 
 @app.route('/mine', methods=['POST'])
 def mine_block():
