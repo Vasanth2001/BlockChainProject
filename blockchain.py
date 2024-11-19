@@ -79,18 +79,28 @@ class BlockChain:
         neighbors = self.nodes
         new_chain = None
         max_length = len(self.chain)
+
         for node in neighbors:
             response = requests.get(f'{node}/chain')
             if response.status_code == 200:
                 length = response.json()['length']
                 chain = response.json()['chain']
+                
+                # Ensure the genesis block matches the current chain's genesis block
+                if chain and chain[0] != vars(self.chain[0]):
+                    continue
+
+                # Replace with the longest valid chain
                 if length > max_length and self.validate_chain(chain):
                     max_length = length
                     new_chain = chain
+
         if new_chain:
             self.chain = [self.deserialize_block(b) for b in new_chain]
             return True
+
         return False
+
     def validate_chain(self, chain):
         for i in range(1, len(self.chain)):
             current_block = self.chain[i]
