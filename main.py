@@ -1,7 +1,6 @@
 import requests
 
 def get_node_address():
-    """Prompt the user to specify the node address."""
     print("Enter the address of the node you want to connect to (e.g., http://127.0.0.1:5000):")
     return input("Node address: ").strip()
 
