@@ -26,16 +26,9 @@ class Block:
 
     def mine_block(self, difficulty):
         target = '0' * difficulty
-        start_time = time.time()
-        cpu_usage_start = psutil.cpu_percent(interval=None)
         while self.hash[:difficulty] != target:
             self.nonce += 1
             self.hash = self.calculate_hash()  
-        end_time = time.time()
-        cpu_usage_end = psutil.cpu_percent(interval=None)
-        time_taken = end_time - start_time
-        cpu_utilization = (cpu_usage_start + cpu_usage_end) / psutil.cpu_count()
-        print(f"Proof of Work completed. Time taken: {time_taken:.2f} seconds, CPU Utilization: {cpu_utilization}%")
 
 class BlockChain:
     def __init__(self, difficulty = 4, confirmation_requirement = 0):
@@ -82,44 +75,12 @@ class BlockChain:
             "remaining_confirmations": self.confirmation_requirement - len(self.pending_blocks),
             "pending_blocks": len(self.pending_blocks)
             }
-    def is_chain_valid(self):
-        start_time = time.time()
-        cpu_usage_start = psutil.cpu_percent(interval=None)
-        for i in range(1, len(self.chain)):
-            current_block = self.chain[i]
-            previous_block = self.chain[i - 1]
-            if current_block.hash != current_block.calculate_hash():
-                print(f"Invalid block hash at index {current_block.index}")
-                return False
-            if current_block.previous_hash != previous_block.hash:
-                print(f"Invalid previous hash link at index {current_block.index}")
-                return False
-            if not current_block.hash.startswith('0' * self.difficulty):
-                print(f"Block {current_block.index} does not satisfy proof-of-work")
-                return False
-            total_difficulty += 1
-        end_time = time.time()
-        cpu_usage_end = psutil.cpu_percent(interval=None)
-        time_taken = end_time - start_time
-        cpu_utilization = (cpu_usage_start + cpu_usage_end) / psutil.cpu_count()
-        print(f"Chain validation completed. Time taken: {time_taken:.2f} seconds, CPU Utilization: {cpu_utilization}%")
-        return total_difficulty >= len(self.chain)
-    def display_chain(self):
-        for block in self.chain:
-            print("**************************************")
-            print(f"Index: {block.index}")
-            print(f"Timestamp: {block.timestamp}")
-            print(f"Transactions: {block.transactions}")
-            print(f"Previous Hash: {block.previous_hash}")
-            print(f"Hash: {block.hash}")
-            print(f"Nonce: {block.nonce}")
-            print("**************************************")
     def resolve_conflicts(self):
         neighbors = self.nodes
         new_chain = None
         max_length = len(self.chain)
         for node in neighbors:
-            response = requests.get(f'http://{node}/chain')
+            response = requests.get(f'{node}/chain')
             if response.status_code == 200:
                 length = response.json()['length']
                 chain = response.json()['chain']
@@ -131,12 +92,14 @@ class BlockChain:
             return True
         return False
     def validate_chain(self, chain):
-        for i in range(1, len(chain)):
-            block = chain[i]
-            previous_block = chain[i - 1]
-            if block['previous_hash'] != previous_block['hash']:
+        for i in range(1, len(self.chain)):
+            current_block = self.chain[i]
+            previous_block = self.chain[i - 1]
+            if current_block.hash != current_block.calculate_hash():
                 return False
-            if not block['hash'].startswith('0' * self.difficulty):
+            if current_block.previous_hash != previous_block.hash:
+                return False
+            if not current_block.hash.startswith('0' * self.difficulty):
                 return False
         return True
     @staticmethod
