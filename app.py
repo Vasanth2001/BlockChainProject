@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from blockchain import BlockChain, Block
 import sys
+import requests
 
 app = Flask(__name__)
 
@@ -17,11 +18,26 @@ def mine_block():
     transactions = request.json.get("transactions")
     if not transactions:
         return jsonify({"error": "Transactions are required"}), 400
+
     new_block = Block(len(blockchain.chain), transactions, blockchain.get_latest_block().hash)
+    new_block.previous_hash = blockchain.get_latest_block().hash
+    new_block.mine_block(blockchain.difficulty)
     blockchain.add_block(new_block)
-    blockchain.broadcast_block(new_block)
-    print(f"Nodes List : {blockchain.nodes}")
+
+    # Broadcast the new block to other nodes
+    for node in blockchain.nodes:  # Assuming blockchain.nodes contains the list of peers
+        try:
+            response = requests.post(f"{node}/add_block", json=vars(new_block), timeout=5)
+            if response.status_code == 200:
+                print(f"Block successfully sent to node {node}")
+            else:
+                print(f"Failed to send block to node {node}: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error connecting to node {node}: {e}")
+
+    print(f"Nodes List: {blockchain.nodes}")
     return jsonify({"message": "New block mined and broadcasted", "block": vars(new_block)}), 201
+
 
 
 
@@ -47,7 +63,27 @@ def add_block():
         result = blockchain.add_block(new_block)
         return jsonify(result), 200
     else:
+        try:
+            resolve_url = f"http://localhost:{request.host.split(':')[1]}/nodes/resolve"
+            response = requests.get(resolve_url, timeout=5)
+            if response.status_code == 200:
+                return jsonify({
+                    "error": "Invalid block",
+                    "message": "Attempted to resolve conflicts",
+                    "resolve_response": response.json()
+                }), 400
+            else:
+                return jsonify({
+                    "error": "Invalid block",
+                    "message": "Conflict resolution failed"
+                }), 400
+        except requests.exceptions.RequestException as e:
+            return jsonify({
+                "error": "Invalid block",
+                "message": f"Conflict resolution failed: {str(e)}"
+            }), 400
         return jsonify({"error": "Invalid block"}), 400
+
 
 
 @app.route('/nodes/resolve', methods=['GET'])
