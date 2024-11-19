@@ -85,7 +85,6 @@ class BlockChain:
             if response.status_code == 200:
                 length = response.json()['length']
                 chain = response.json()['chain']
-                
                 # Ensure the genesis block matches the current chain's genesis block
                 if chain and chain[0] != vars(self.chain[0]):
                     continue
@@ -112,14 +111,16 @@ class BlockChain:
             if not current_block.hash.startswith('0' * self.difficulty):
                 return False
         return True
-    @staticmethod
-    def deserialize_block(block_data):
-        try:
-            return Block(
-                index=block_data['index'],
-                transactions=block_data['transactions'],
-                previous_hash=block_data['previous_hash']
-            )
-        except KeyError as e:
-            print(f"Error deserializing block: missing key {e}")
-            return None
+    def deserialize_block(self, block_data):
+        block = Block(
+            index=block_data['index'],
+            transactions=block_data['transactions'],
+            previous_hash=block_data['previous_hash']
+        )
+
+        # Override the automatically generated attributes
+        block.timestamp = block_data.get('timestamp', block.timestamp)  # Use provided timestamp or keep the generated one
+        block.hash = block_data['hash']
+        block.nonce = block_data['nonce']
+
+        return block
