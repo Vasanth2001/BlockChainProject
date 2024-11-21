@@ -22,10 +22,6 @@ This project provides a Python-based command-line interface (CLI) to interact wi
 
 1. Clone the repository:
 
-    ```bash
-    git clone https://github.com/your-username/blockchain-node-interaction.git
-    cd blockchain-node-interaction
-    ```
 
 2. Install the required dependencies:
 
@@ -40,6 +36,8 @@ This project provides a Python-based command-line interface (CLI) to interact wi
         "nodes": [
             "http://127.0.0.1:5000",
             "http://127.0.0.1:5001"
+            "http://127.0.0.1:5002"
+
         ]
     }
     ```
@@ -52,14 +50,13 @@ To run the blockchain node server on a specific port, use the following command:
 
 ```bash
 python3 app.py --port <PORT>
+```
 
-
-### Run the script
+### Run the script:
 
     ```bash
     python main.py
     ```
-
 The program will prompt you to enter the address of the node you want to connect to. For example:
 
     ```
@@ -76,7 +73,7 @@ After connecting to the node, you'll see a menu with the following options:
     6. View other nodes' wallets
     7. Exit
 
-4. Choose the corresponding number to perform an action.
+Choose the corresponding number to perform an action.
 
 ### Example Workflow
 
