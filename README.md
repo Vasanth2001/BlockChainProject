@@ -1,160 +1,94 @@
-# Blockchain with P2P Network
+# Blockchain Node Interaction System
 
-This project is a simplified blockchain implementation featuring Proof of Work (PoW) consensus and basic peer-to-peer (P2P) networking. The blockchain can mine new blocks, add them to the chain, validate integrity, and resolve conflicts across nodes. 
-
-The project uses Flask for the server-side APIs, allowing multiple nodes to communicate and maintain a synchronized blockchain. 
-
----
+This project provides a Python-based command-line interface (CLI) to interact with a blockchain network. The system allows users to connect to multiple nodes, view wallet details, mine new blocks, verify blockchain integrity, and resolve chain conflicts. It simulates transactions between nodes and provides a simple way to visualize and manage a decentralized blockchain.
 
 ## Features
 
-1. **Proof of Work**: Blocks are mined by solving a computationally difficult problem based on a configurable difficulty level.
-2. **Genesis Block**: The chain is initialized with a Genesis block.
-3. **Block Validation**: Ensures data integrity and validates that the chain satisfies the PoW.
-4. **Distributed Network**:
-   - Nodes can broadcast new blocks to peers.
-   - Nodes can resolve conflicts to agree on the longest valid chain.
-5. **RESTful API**: API endpoints to mine, add blocks, fetch the blockchain, and resolve conflicts.
-6. **CLI Interface**: A user-friendly CLI to interact with the blockchain, submit transactions, view the chain, and verify its integrity.
+- **Node Interaction**: Connect to different blockchain nodes and interact with their wallets.
+- **Transaction Mining**: Add transactions and mine new blocks between nodes.
+- **Blockchain State Viewing**: View the current state of the blockchain, including transaction details, hashes, and previous blocks.
+- **Blockchain Integrity Verification**: Verify the integrity of the blockchain to ensure that it hasn't been tampered with.
+- **Chain Resolution**: Resolve conflicts between nodes by selecting the longest valid chain.
+- **Wallet Management**: Display wallet details (public key and balance) for individual nodes or all nodes in the network.
 
----
+## Installation
 
-## Technologies Used
+### Requirements
 
-- **Python**: Core logic and implementation.
-- **Flask**: RESTful API for blockchain interactions.
-- **Requests**: HTTP communication between nodes.
-- **Psutil**: Performance monitoring during mining.
-- **JSON**: Serialization and deserialization of blockchain data.
+- Python 3.x
+- `requests` library (for making HTTP requests)
 
----
+### Setup
 
-## Project Structure
+1. Clone the repository:
 
-```plaintext
-├── blockchain.py   # Core blockchain logic
-├── app.py          # Flask app exposing blockchain APIs
-├── main.py         # CLI interface for interacting with the blockchain
-├── nodes.json      # File to store connected nodes
-```
+    ```bash
+    git clone https://github.com/your-username/blockchain-node-interaction.git
+    cd blockchain-node-interaction
+    ```
 
----
+2. Install the required dependencies:
 
-## Installation and Setup
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/yourusername/blockchain-p2p.git
-   cd blockchain-p2p
-   ```
+3. Make sure you have a `nodes.json` file in the project directory that contains the addresses of the blockchain nodes you want to connect to. Example format for `nodes.json`:
 
-2. **Install Dependencies**:
-   Ensure you have Python 3.6+ installed. Install required libraries:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run a Node**:
-   Start a node using `app.py`. Optionally, specify the port:
-   ```bash
-   python app.py 5000
-   ```
-   If no port is provided, the default is `5000`.
-
-4. **Start the CLI Interface**:
-   Use the CLI to interact with the blockchain:
-   ```bash
-   python main.py
-   ```
-
----
-
-## API Endpoints
-
-### **1. Fetch Blockchain**
-- **URL**: `/chain`
-- **Method**: GET
-- **Response**: JSON representation of the blockchain.
-
-### **2. Mine a New Block**
-- **URL**: `/mine`
-- **Method**: POST
-- **Request Body**:
-  ```json
-  {
-    "transactions": ["Alice pays Bob 10 BTC"]
-  }
-  ```
-- **Response**: Details of the mined block.
-
-### **3. Add a Block**
-- **URL**: `/add_block`
-- **Method**: POST
-- **Request Body**: Block data.
-- **Response**: Status of block addition.
-
-### **4. Resolve Conflicts**
-- **URL**: `/nodes/resolve`
-- **Method**: GET
-- **Response**: Updated blockchain if conflicts are resolved.
-
----
+    ```json
+    {
+        "nodes": [
+            "http://127.0.0.1:5000",
+            "http://127.0.0.1:5001"
+        ]
+    }
+    ```
 
 ## Usage
 
-### From the CLI
+### Running the Blockchain Node Server (`app.py`)
 
-1. **Add Transactions and Mine a Block**:
-   Enter details of the sender, receiver, and amount. The block is mined and added to the chain.
+To run the blockchain node server on a specific port, use the following command:
 
-2. **View Blockchain**:
-   View the full blockchain with all blocks and their details.
+```bash
+python3 app.py --port <PORT>
 
-3. **Verify Blockchain**:
-   Ensure the blockchain is valid and intact.
 
-4. **Exit**:
-   Quit the CLI.
+### Run the script
 
----
+    ```bash
+    python main.py
+    ```
 
-## Node Synchronization
+The program will prompt you to enter the address of the node you want to connect to. For example:
 
-- Add peers by modifying the `nodes.json` file:
-  ```json
-  {
-    "nodes": ["http://127.0.0.1:5001", "http://127.0.0.1:5002"]
-  }
-  ```
-- Nodes communicate with peers to broadcast new blocks and resolve chain conflicts.
+    ```
+    Enter the address of the node you want to connect to (e.g., http://127.0.0.1:5000):
+    ```
 
----
+After connecting to the node, you'll see a menu with the following options:
 
-## Example Workflow
+    1. Add transactions and mine a new block
+    2. View blockchain
+    3. Verify blockchain integrity
+    4. Resolve chain conflicts
+    5. Display your wallet details
+    6. View other nodes' wallets
+    7. Exit
 
-1. Start two nodes on different ports:
-   ```bash
-   python app.py 5000
-   python app.py 5001
-   ```
+4. Choose the corresponding number to perform an action.
 
-2. Add transactions and mine blocks via the CLI:
-   ```bash
-   python main.py
-   ```
+### Example Workflow
 
-3. Use `/nodes/resolve` to synchronize chains across nodes.
+- **Transaction Mining**: You can send transactions between nodes by selecting an active node to send funds to.
+- **Blockchain State**: View the entire blockchain or just check the latest state of the chain.
+- **Chain Resolution**: If there's a conflict between nodes, the system can help resolve it by selecting the longest valid chain.
+- **Integrity Verification**: Verify that the blockchain is consistent across all nodes.
 
----
+## Contributing
 
-## Future Enhancements
-
-- Add support for digital signatures and cryptographic verification.
-- Implement a more advanced consensus mechanism.
-- Extend the P2P network to discover peers dynamically.
-
----
+If you'd like to contribute to this project, feel free to fork the repository, create a new branch, and submit a pull request with your changes.
 
 ## License
 
-This project is licensed under the MIT License. Feel free to use and modify it for your purposes.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
