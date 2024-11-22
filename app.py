@@ -9,11 +9,6 @@ from urllib.parse import urlparse
 
 app = Flask(__name__)
 
-# Instantiate the blockchain
-blockchain = BlockChain()
-wallet = Wallet()
-blockchain.wallets[wallet.get_address()] = wallet.balance
-
 @app.route('/wallet', methods=['POST'])
 def get_wallet_details():
     try:
@@ -287,16 +282,23 @@ def broadcast_wallet_details():
             print(f"Error sending wallet details to {node}: {e}")
 
 
-
-
 if __name__ == "__main__":
+    port = 5000  
+    wallet_balance = 100 
     if len(sys.argv) > 1:
         try:
             port = int(sys.argv[1])
         except ValueError:
             print("Invalid port number provided. Using default (5000)")
-            port = 5000
-    else:
-        port = 5000
+    if len(sys.argv) > 2:
+        try:
+            wallet_balance = float(sys.argv[2])
+            if wallet_balance < 0:
+                raise ValueError("Wallet balance cannot be negative.")
+        except ValueError:
+            print("Invalid wallet balance provided. Using default (100)")
+    blockchain = BlockChain()
+    wallet = Wallet(wallet_balance)
+    blockchain.wallets[wallet.get_address()] = wallet_balance
     threading.Thread(target=broadcast_wallet_details, daemon=True).start()
     app.run(port=port)
