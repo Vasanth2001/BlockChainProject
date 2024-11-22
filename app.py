@@ -8,6 +8,8 @@ import threading
 from urllib.parse import urlparse
 
 app = Flask(__name__)
+blockchain = None
+wallet = None
 
 @app.route('/wallet', methods=['POST'])
 def get_wallet_details():
@@ -57,6 +59,35 @@ def update_wallet_details():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/mempool', methods=['GET'])
+def get_mempool():
+    return jsonify({"mempool": blockchain.mempool}), 200
+
+@app.route('/update_mempool', methods=['POST'])
+def update_mempool():
+    try:
+        data = request.json
+        new_mempool = data.get('mempool')
+        if new_mempool is None:
+            return jsonify({"error": "Mempool data is required"}), 400
+
+        blockchain.mempool = new_mempool 
+        return jsonify({"message": "Mempool updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/add_mempool', methods=['POST'])
+def append_mempool():
+    try:
+        data = request.json
+        transactions = data.get("transactions")[0]
+        if transactions is None:
+            return jsonify({"error": "Transactions are required"}), 400
+        blockchain.mempool.append(transactions) 
+        return jsonify({"message": "Transaction added to mempool successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/transaction', methods=['POST'])
 def create_transaction():
@@ -68,24 +99,25 @@ def create_transaction():
         return jsonify({"error": "Sender, receiver, amount are required"}), 400
     transaction = Transaction(wallet, sender, receiver, amount)
     if transaction.validate_transaction(blockchain):
-        mining_payload = {
+        transaction_data = transaction.to_dict()
+        payload = {
             "transactions": [transaction.to_dict()]
         }
-        mine_response = requests.post(f"http://localhost:{request.host.split(':')[1]}/mine", json=mining_payload)
-        if mine_response.status_code == 201:
-            return jsonify({
-                "message": "Transaction validated and mined successfully",
-                "block": mine_response.json().get("block"),
-                "time_taken": mine_response.json().get("time_taken"),
-                "cpu_utilization": mine_response.json().get("cpu_utilization")
-            }), 201
-        else:
-            return jsonify({
-                "error": "Transaction was valid but mining failed",
-                "details": mine_response.json()
-            }), 500
+        for node in blockchain.nodes:
+            try:
+                response = requests.post(f"{node}/add_mempool", json=payload, timeout=5)
+                if response.status_code == 201:
+                    print(f"Transaction added to {node} mempool")
+                else:
+                    print(f"Failed to broadcast transaction to {node}: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"Error broadcasting transaction to {node}: {e}")
+        return jsonify({
+            "message": "Transaction validated and added to the mempool"
+        }), 201
     else:
         return jsonify({"error": "Invalid transaction"}), 400
+
 
 @app.route('/transaction_simulation', methods=['POST'])
 def create_transaction_simulation():
@@ -96,63 +128,22 @@ def create_transaction_simulation():
     if not all([sender, receiver, amount is not None]):
         return jsonify({"error": "Sender, receiver, and amount are required"}), 400
     transaction = Transaction(wallet, sender, receiver, amount)
-    mining_payload = {
-        "transactions": [transaction.to_dict()]
-    }
-    mine_response = requests.post(f"http://localhost:{request.host.split(':')[1]}/mine", json=mining_payload)
-    if mine_response.status_code == 201:
-        return jsonify({
-            "message": "Transaction submitted and mined successfully (without validation)",
-            "block": mine_response.json().get("block"),
-            "time_taken": mine_response.json().get("time_taken"),
-            "cpu_utilization": mine_response.json().get("cpu_utilization")
-        }), 201
-    else:
-        return jsonify({
-            "error": "Transaction submission was successful but mining failed",
-            "details": mine_response.json()
-        }), 500
+    transaction_data = transaction.to_dict()
+    for node in blockchain.nodes:
+        try:
+            response = requests.post(f"{node}/add_mempool", json=transaction_data, timeout=5)
+            if response.status_code == 201:
+                print(f"Transaction broadcasted to {node}")
+            else:
+                print(f"Failed to broadcast transaction to {node}: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error broadcasting transaction to {node}: {e}")
 
 
 @app.route('/chain', methods=['GET'])
 def get_chain():
     chain_data = [vars(block) for block in blockchain.chain]
     return jsonify({"length": len(chain_data), "chain": chain_data}), 200
-
-from urllib.parse import urlparse
-
-@app.route('/mine', methods=['POST'])
-def mine_block():
-    start_time = time.time()
-    cpu_usage_start = psutil.cpu_percent(interval=None)
-
-    data = request.json
-    transactions = data.get('transactions')
-    if not transactions:
-        return jsonify({"error": "Transactions are required"}), 400
-    new_block = Block(len(blockchain.chain), transactions, blockchain.get_latest_block().hash)
-    new_block.mine_block(blockchain.difficulty)
-    blockchain.add_block(new_block)
-    for node in blockchain.nodes:
-        try:
-            response = requests.post(f"{node}/add_block", json=vars(new_block), timeout=5)
-            if response.status_code == 200:
-                print(f"Block successfully sent to node {node}")
-            else:
-                print(f"Failed to send block to node {node}: {response.status_code}")
-        except requests.exceptions.RequestException as e:
-            print(f"Error connecting to node {node}: {e}")
-    end_time = time.time()
-    cpu_usage_end = psutil.cpu_percent(interval=None)
-    time_taken = end_time - start_time
-    cpu_utilization = (cpu_usage_start + cpu_usage_end) / psutil.cpu_count()
-
-    return jsonify({
-        "message": "New block mined and broadcasted",
-        "block": vars(new_block),
-        "time_taken": f"{time_taken:.2f} seconds",
-        "cpu_utilization": f"{cpu_utilization:.2f}%"
-    }), 201
 
 
 @app.route('/verify', methods=['GET'])
@@ -164,12 +155,6 @@ def verify_integrity():
         for i in range(1, len(blockchain.chain)):
             current_block = blockchain.chain[i]
             previous_block = blockchain.chain[i - 1]
-            if current_block.hash != current_block.calculate_hash():
-                return jsonify({
-                    "valid": False,
-                    "error": f"Invalid block hash at index {current_block.index}",
-                    "details": "The computed hash does not match the stored hash."
-                }), 400
             if current_block.previous_hash != previous_block.hash:
                 return jsonify({
                     "valid": False,
@@ -288,24 +273,77 @@ def consensus():
 
 
 def broadcast_wallet_details():
-    wallet_address = wallet.get_address()
-    balance = blockchain.get_wallet_balance(wallet_address)
-    payload = {
-        "public_key": wallet_address,
-        "balance": balance,
-        "node_address": f"http://localhost:{port}"
-    }
+    while True:
+        try:
+            wallet_address = wallet.get_address()
+            balance = blockchain.get_wallet_balance(wallet_address)
+            payload = {
+                "public_key": wallet_address,
+                "balance": balance,
+                "node_address": f"http://localhost:{port}"
+            }
 
+            for node in blockchain.nodes:
+                try:
+                    response = requests.post(f"{node}/wallet_details", json=payload, timeout=5)
+                    if response.status_code == 200:
+                        print(f"Wallet details sent to {node}")
+                except requests.exceptions.RequestException as e:
+                    print(f"Failed to send wallet details to {node}: {e}")
+
+            time.sleep(100)
+        except Exception as e:
+            print(f"Error in wallet broadcast thread: {str(e)}")
+
+
+def prioritize_mempool(mempool):
+    print("Mempool before prioritization:", mempool)
+    return sorted(
+        mempool, 
+        key=lambda tx: (-tx.get('fee', 0), tx.get('timestamp', 0))
+    )
+
+
+def mine_block():
+    start_time = time.time()
+    max_transactions = 2
+    if len(blockchain.mempool) < max_transactions:
+        print("Not enough transactions to mine a block")
+        return
+    prioritized_mempool = prioritize_mempool(blockchain.mempool)
+    transactions = prioritized_mempool[:max_transactions] 
+    new_block = Block(len(blockchain.chain), transactions, blockchain.get_latest_block().hash)
+    new_block.mine_block(blockchain.difficulty)
+    blockchain.add_block(new_block)
+    blockchain.mempool = blockchain.mempool[len(transactions):]
     for node in blockchain.nodes:
         try:
-            response = requests.post(f"{node}/wallet_details", json=payload)
+            response = requests.post(f"{node}/add_block", json=vars(new_block), timeout=5)
             if response.status_code == 200:
-                print(f"Successfully broadcasted wallet details to {node}")
+                print(f"Block successfully sent to node {node}")
             else:
-                print(f"Failed to broadcast wallet details to {node}. Status code: {response.status_code}")
+                print(f"Failed to send block to node {node}: {response.status_code}")
         except requests.exceptions.RequestException as e:
-            print(f"Error sending wallet details to {node}: {e}")
+            print(f"Error connecting to node {node}: {e}")
+    for node in blockchain.nodes:
+        try:
+            response = requests.post(f"{node}/update_mempool", json={"mempool": blockchain.mempool}, timeout=5)
+            if response.status_code == 200:
+                print(f"Mempool successfully synchronized with node {node}")
+            else:
+                print(f"Failed to synchronize mempool with node {node}: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error connecting to node {node}: {e}")
+    end_time = time.time()
+    time_taken = end_time - start_time
+    print(f"Block mined and broadcasted in {time_taken:.2f} seconds")
 
+
+def mine_blocks_periodically():
+    while True:
+        print("Trying to mine......")
+        mine_block()
+        time.sleep(5)
 
 if __name__ == "__main__":
     port = 5000  
@@ -325,5 +363,6 @@ if __name__ == "__main__":
     blockchain = BlockChain()
     wallet = Wallet(wallet_balance)
     blockchain.wallets[wallet.get_address()] = wallet_balance
+    threading.Thread(target=mine_blocks_periodically, daemon=True).start()
     threading.Thread(target=broadcast_wallet_details, daemon=True).start()
     app.run(port=port)
