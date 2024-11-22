@@ -87,6 +87,31 @@ def create_transaction():
     else:
         return jsonify({"error": "Invalid transaction"}), 400
 
+@app.route('/transaction_simulation', methods=['POST'])
+def create_transaction_simulation():
+    data = request.json
+    sender = data.get('sender')
+    receiver = data.get('receiver')
+    amount = data.get('amount')
+    if not all([sender, receiver, amount is not None]):
+        return jsonify({"error": "Sender, receiver, and amount are required"}), 400
+    transaction = Transaction(wallet, sender, receiver, amount)
+    mining_payload = {
+        "transactions": [transaction.to_dict()]
+    }
+    mine_response = requests.post(f"http://localhost:{request.host.split(':')[1]}/mine", json=mining_payload)
+    if mine_response.status_code == 201:
+        return jsonify({
+            "message": "Transaction submitted and mined successfully (without validation)",
+            "block": mine_response.json().get("block"),
+            "time_taken": mine_response.json().get("time_taken"),
+            "cpu_utilization": mine_response.json().get("cpu_utilization")
+        }), 201
+    else:
+        return jsonify({
+            "error": "Transaction submission was successful but mining failed",
+            "details": mine_response.json()
+        }), 500
 
 
 @app.route('/chain', methods=['GET'])
