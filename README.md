@@ -25,13 +25,13 @@ This project provides a Python-based command-line interface (CLI) to interact wi
 
 2. Install the required dependencies:
 
-    ```bash
+    ```
     pip install -r requirements.txt
     ```
 
 3. Make sure you have a `nodes.json` file in the project directory that contains the addresses of the blockchain nodes you want to connect to. Example format for `nodes.json`:
 
-    ```json
+    ```
     {
         "nodes": [
             "http://127.0.0.1:5000",
