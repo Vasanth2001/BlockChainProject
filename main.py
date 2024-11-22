@@ -1,6 +1,8 @@
 import requests
 import json
 from pprint import pprint
+import time
+import random 
 def get_node_address():
     print("Enter the address of the node you want to connect to (e.g., http://127.0.0.1:5000):")
     return input("Node address: ").strip()
@@ -238,6 +240,54 @@ def verify_blockchain_integrity(node_address):
     print("--------------------------------------")
 
 
+def simulate_pinning_attack(node_address, sender_wallet_address):
+    try:
+        nodes_wallets = get_all_nodes_wallets()
+        active_wallets = [
+            wallet_details[0]
+            for node, wallet_details in nodes_wallets.items()
+            if wallet_details[1] == "active" and wallet_details[0] != sender_wallet_address
+        ]
+        if len(active_wallets) < 2:
+            print("Insufficient active wallets for the attack simulation.")
+            return
+        receiver_public_key_1 = random.choice(active_wallets)
+        active_wallets.remove(receiver_public_key_1)
+        receiver_public_key_2 = random.choice(active_wallets)
+        legitimate_transaction = {
+            "sender": sender_wallet_address,
+            "receiver": receiver_public_key_1,
+            "amount": 10,
+            "signature": None 
+        }
+
+        response_legit = requests.post(f"{node_address}/transaction", json=legitimate_transaction)
+        if response_legit.status_code == 201:
+            print("Legitimate transaction sent successfully.")
+        else:
+            print(f"Failed to send legitimate transaction: {response_legit.text}")
+            return
+        spam_transaction = {
+            "sender": sender_wallet_address,
+            "receiver": receiver_public_key_2,
+            "amount": 10,
+            "signature": None
+        }
+        min_delay = 5
+        max_delay = 10
+        delay = random.randint(min_delay, max_delay)
+        time.sleep(delay)
+        response_spam = requests.post(f"{node_address}/transaction", json=spam_transaction)
+        if response_spam.status_code == 201:
+            print("Conflicting transaction sent successfully.")
+        else:
+            print(f"Failed to send conflicting transaction: {response_spam.text}")
+
+        print("Transaction pinning attack simulation complete.")
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error during attack simulation: {e}")
+
 def main():
     node_address = get_node_address()
     node_wallet_address = get_node_wallet_address(node_address)
@@ -251,7 +301,8 @@ def main():
         print("4. Resolve chain conflicts")
         print("5. Display your wallet details")
         print("6. View other nodes' wallets")
-        print("7. Exit")
+        print("7. Simulate a Transaction Pinning Attack")
+        print("8. Exit")
         choice = input("Choose an option: ")
         if choice == '1':
             mine_new_block(node_address, node_wallet_address)
@@ -266,6 +317,8 @@ def main():
         elif choice == '6':
             display_wallet_details()
         elif choice == '7':
+            simulate_pinning_attack(node_address, node_wallet_address)
+        elif choice == '8':
             break
         else:
             print("Invalid choice, please try again.")
