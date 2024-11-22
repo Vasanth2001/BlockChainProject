@@ -291,7 +291,7 @@ def broadcast_wallet_details():
                 except requests.exceptions.RequestException as e:
                     print(f"Failed to send wallet details to {node}: {e}")
 
-            time.sleep(100)
+            time.sleep(300)
         except Exception as e:
             print(f"Error in wallet broadcast thread: {str(e)}")
 
