@@ -234,7 +234,8 @@ def verify_blockchain_integrity(node_address):
         print("Validation Result: The blockchain is valid.")
     else:
         data = response.json()
-        print(f"Blockchain Integrity Verification Failed: {data.get('message')}")
+        print(f"Blockchain Integrity Verification Failed: {data.get('valid')}")
+        print(f"Details: {data.get('details')}")
         print(f"Error: {data.get('error')}")
     
     print("--------------------------------------")
@@ -258,35 +259,44 @@ def simulate_pinning_attack(node_address, sender_wallet_address):
             "sender": sender_wallet_address,
             "receiver": receiver_public_key_1,
             "amount": 10,
-            "signature": None 
+            "signature": None
         }
-
-        response_legit = requests.post(f"{node_address}/transaction_simulation", json=legitimate_transaction)
+        response_legit = requests.post(f"{node_address}/transaction", json=legitimate_transaction)
         if response_legit.status_code == 201:
-            print("Legitimate transaction sent successfully.")
+            print("Legitimate transaction submitted successfully.")
         else:
-            print(f"Failed to send legitimate transaction: {response_legit.text}")
+            print(f"Failed to submit legitimate transaction: {response_legit.text}")
             return
+        min_delay = 1
+        max_delay = 5
+        delay = random.randint(min_delay, max_delay)
+        time.sleep(delay)
         spam_transaction = {
             "sender": sender_wallet_address,
             "receiver": receiver_public_key_2,
             "amount": 10,
             "signature": None
         }
-        min_delay = 5
-        max_delay = 10
-        delay = random.randint(min_delay, max_delay)
-        time.sleep(delay)
-        response_spam = requests.post(f"{node_address}/transaction_simulation", json=spam_transaction)
+        response_spam = requests.post(f"{node_address}/transaction", json=spam_transaction)
         if response_spam.status_code == 201:
-            print("Conflicting transaction sent successfully.")
+            print("Conflicting transaction submitted successfully.")
         else:
-            print(f"Failed to send conflicting transaction: {response_spam.text}")
+            print(f"Failed to submit conflicting transaction: {response_spam.text}")
+            return
+        time.sleep(10)
+        print("Retrieving current mempool state...")
+        mempool_response = requests.get(f"{node_address}/mempool")
+        if mempool_response.status_code == 200:
+            print("Mempool state after the attack simulation:")
+            pprint(mempool_response.json())
+        else:
+            print(f"Failed to fetch mempool state: {mempool_response.text}")
 
         print("Transaction pinning attack simulation complete.")
 
     except requests.exceptions.RequestException as e:
         print(f"Error during attack simulation: {e}")
+
 
 def main():
     node_address = get_node_address()
