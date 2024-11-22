@@ -277,7 +277,7 @@ def simulate_pinning_attack(node_address, sender_wallet_address):
         max_delay = 10
         delay = random.randint(min_delay, max_delay)
         time.sleep(delay)
-        response_spam = requests.post(f"{node_address}/transaction", json=spam_transaction)
+        response_spam = requests.post(f"{node_address}/transaction_simulation", json=spam_transaction)
         if response_spam.status_code == 201:
             print("Conflicting transaction sent successfully.")
         else:
