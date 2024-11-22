@@ -71,7 +71,8 @@ After connecting to the node, you'll see a menu with the following options:
     4. Resolve chain conflicts
     5. Display your wallet details
     6. View other nodes' wallets
-    7. Exit
+    7. Simulate a Transaction Pinning Attack
+    8. Exit
 
 Choose the corresponding number to perform an action.
 
