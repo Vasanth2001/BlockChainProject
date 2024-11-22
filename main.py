@@ -261,7 +261,7 @@ def simulate_pinning_attack(node_address, sender_wallet_address):
             "signature": None 
         }
 
-        response_legit = requests.post(f"{node_address}/transaction", json=legitimate_transaction)
+        response_legit = requests.post(f"{node_address}/transaction_simulation", json=legitimate_transaction)
         if response_legit.status_code == 201:
             print("Legitimate transaction sent successfully.")
         else:
