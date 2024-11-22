@@ -49,7 +49,7 @@ This project provides a Python-based command-line interface (CLI) to interact wi
 To run the blockchain node server on a specific port, use the following command:
 
 ```bash
-python3 app.py --port <PORT>
+python3 app.py <PORT> <WALLET BALANCE>
 ```
 
 ### Run the script:
