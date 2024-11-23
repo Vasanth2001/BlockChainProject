@@ -291,7 +291,7 @@ def broadcast_wallet_details():
                 except requests.exceptions.RequestException as e:
                     print(f"Failed to send wallet details to {node}: {e}")
 
-            time.sleep(300)
+            time.sleep(100)
         except Exception as e:
             print(f"Error in wallet broadcast thread: {str(e)}")
 
@@ -304,18 +304,28 @@ def prioritize_mempool(mempool):
     )
 
 
-def mine_block():
+def mine_block(miner_wallet):
     start_time = time.time()
     max_transactions = 2
     if len(blockchain.mempool) < max_transactions:
         print("Not enough transactions to mine a block")
         return
     prioritized_mempool = prioritize_mempool(blockchain.mempool)
-    transactions = prioritized_mempool[:max_transactions] 
+    transactions = prioritized_mempool[:max_transactions]
+    total_fees = sum(tx['fee'] for tx in transactions)
+    fee_transaction = {
+        "sender": "SYSTEM",
+        "receiver": miner_wallet.get_address(),
+        "amount": total_fees,
+        "fee": 0,
+        "signature": None,
+        "timestamp": time.time(),
+    }
+    transactions.append(fee_transaction)
     new_block = Block(len(blockchain.chain), transactions, blockchain.get_latest_block().hash)
     new_block.mine_block(blockchain.difficulty)
     blockchain.add_block(new_block)
-    blockchain.mempool = blockchain.mempool[len(transactions):]
+    blockchain.mempool = blockchain.mempool[len(prioritized_mempool):]
     for node in blockchain.nodes:
         try:
             response = requests.post(f"{node}/add_block", json=vars(new_block), timeout=5)
@@ -342,7 +352,7 @@ def mine_block():
 def mine_blocks_periodically():
     while True:
         print("Trying to mine......")
-        mine_block()
+        mine_block(wallet)
         time.sleep(5)
 
 if __name__ == "__main__":
